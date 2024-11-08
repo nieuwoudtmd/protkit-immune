@@ -662,6 +662,23 @@ def properties_interface_residues():
         if residue.get_attribute("ca_in_interface"):
             print(residue.id)
 
+def immune_annotate_chain():
+    from protkit.file_io import PDBIO, ProtIO
+    from protkit.immune import Annotator
+
+    protein = PDBIO.load("1ahw.pdb")[0]
+    protein.remove_hetero_residues()  # Remove hetero residues
+    chain = protein.get_chain("B")# Keep only the specified chain
+
+    # Annotate the chain
+    scheme = "chothia"
+    Annotator.annotate_chain(chain, scheme=scheme, assign_attributes=True)
+
+    residue = chain.get_residue(0)
+    print(chain.get_attribute("species"))
+    print(residue.get_attribute("scheme_region"))
+    print(residue.get_attribute("scheme_number"))
+
 def tools_reduce():
     from protkit.tools.reduce_adaptor import ReduceAdaptor
     from protkit.file_io import ProtIO
@@ -684,6 +701,36 @@ def tools_freesasa():
     atom_areas = freesasa.calculate_surface_area(atoms)
     protein_area = sum(atom_areas)
     print(protein_area)
+
+def pipeline_run_cdr_rmsd():
+    from protkit.pipelines.immune import run_cdr_rmsd_pipeline
+
+    predicted_pdb_file = "1ahw.pdb"
+    experimental_pdb_file = "1ahw.pdb" # for now use the same file
+    predicted_chain_ids = ["A", "B"]  # Specify the chains to keep for the predicted structure
+    experimental_chain_ids = ["A", "B"]  # Specify the chains to keep for the experimental structure
+    numbering_scheme = 'chothia'  # or 'imgt', 'kabat', etc.
+    atom_types = ['N', 'CA', 'C', 'O']  # Backbone atoms
+
+    # Run the pipeline
+    results = run_cdr_rmsd_pipeline(
+        predicted_pdb_file,
+        experimental_pdb_file,
+        predicted_chain_ids,
+        experimental_chain_ids,
+        numbering_scheme,
+        atom_types
+    )
+
+    # Print the results
+    if results:
+        print(f"\nOverall Framework RMSD: {results['framework_rmsd']:.3f} Å")
+        for chain_id, cdr_results in results['cdr_rmsd'].items():
+            print(f"\nResults for {chain_id}:")
+            for cdr, rmsd in cdr_results.items():
+                print(f"  {cdr} RMSD: {rmsd:.3f} Å")
+    else:
+        print("No results to display due to previous errors.")
 
 def ml_dataframe():
     from protkit.file_io import ProtIO
@@ -768,4 +815,6 @@ def ml_dataframe3():
 
 # ml_dataframe()
 # ml_dataframe2()
-ml_dataframe3()
+# ml_dataframe3()
+# immune_annotate_chain()
+# pipeline_run_cdr_rmsd()
